@@ -31,6 +31,7 @@ class Actor(nn.Module):
         self.bc1 = nn.BatchNorm1d(fc1_units, affine=False)
         self.bc2 = nn.BatchNorm1d(fc2_units, affine=False)
         self.ln = nn.LayerNorm(33)
+        self.ln2 = nn.LayerNorm(300)
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -41,14 +42,48 @@ class Actor(nn.Module):
     def forward(self, state):
         """Build an actor (policy) network that maps states -> actions."""
         #print(state.size())
-        x = F.leaky_relu(self.fc1((state)))
+        x = F.leaky_relu(self.fc1(self.ln(state)))
         #print(x.size())
         #x = self.bc1(x)
         x = F.leaky_relu(self.fc2(x))
+        x= self.ln2(x)
         x = F.leaky_relu(self.fc23(x))
         #x = self.bc2(x)
         return F.tanh(self.fc3(x))
 
+# class Noise(nn.Module):
+#     """Noise (Policy) Model."""
+
+#     def __init__(self, action_size, seed, fc1_units=100, fc2_units=64):
+#         """Initialize parameters and build model.
+#         Params
+#         ======            
+#             action_size (int): Dimension of each action
+#             seed (int): Random seed
+#             fc1_units (int): Number of nodes in first hidden layer
+#             fc2_units (int): Number of nodes in second hidden layer
+#         """
+#         super(Noise, self).__init__()
+#         self.seed = torch.manual_seed(seed)
+#         self.fc1 = nn.Linear(state_size, fc1_units)
+#         self.fc2 = nn.Linear(fc1_units, fc2_units)                
+#         self.reset_parameters()
+
+#     def reset_parameters(self):
+#         self.fc1.weight.data.uniform_(*hidden_init(self.fc1))
+#         self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
+#         self.fc3.weight.data.uniform_(-3e-3, 3e-3)
+
+#     def forward(self, q):
+#         """Build an actor (policy) network that maps states -> actions."""
+#         #print(state.size())
+#         x = F.leaky_relu(self.fc1((state)))
+#         #print(x.size())
+#         #x = self.bc1(x)
+#         x = F.leaky_relu(self.fc2(x))
+#         x = F.leaky_relu(self.fc23(x))
+#         #x = self.bc2(x)
+#         return F.tanh(self.fc3(x))
 
 class Critic(nn.Module):
     """Critic (Value) Model."""
