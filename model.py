@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+LEARN_UO_NOISE = False
+
 def hidden_init(layer):
     fan_in = layer.weight.data.size()[0]
     lim = 1. / np.sqrt(fan_in)
@@ -12,7 +14,7 @@ def hidden_init(layer):
 class Actor(nn.Module):
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, seed, fc1_units=400, fc2_units=300):
+    def __init__(self, state_size, action_size, seed, fc1_units=256, fc2_units=256):
         """Initialize parameters and build model.
         Params
         ======
@@ -29,7 +31,8 @@ class Actor(nn.Module):
         self.fc3 = nn.Linear(fc2_units, action_size)
         self.fc23 = nn.Linear(fc2_units, fc2_units)
         self.bc1 = nn.BatchNorm1d(state_size, affine=False)
-        self.bc2 = nn.BatchNorm1d(fc2_units, affine=False)
+        self.bc2 = nn.BatchNorm1d(fc1_units, affine=False)
+        self.bc3 = nn.BatchNorm1d(fc2_units, affine=False)
         self.ln = nn.LayerNorm(33)
         self.ln2 = nn.LayerNorm(300)
         self.reset_parameters()
@@ -42,13 +45,14 @@ class Actor(nn.Module):
     def forward(self, state):
         """Build an actor (policy) network that maps states -> actions."""
         #print(state.size())
-        x = F.leaky_relu(self.fc1(self.bc1(state)))
+        x = self.bc1(state)
+        x = F.leaky_relu(self.fc1(x))
         #print(x.size())
-        #x = self.bc1(x)
+        x = self.bc2(x)
         x = F.leaky_relu(self.fc2(x))
-        #x= self.ln2(x)
+        #x= self.bc3(x)
         #x = F.leaky_relu(self.fc23(x))
-        #x = self.bc2(x)
+        x = self.bc3(x)
         return F.tanh(self.fc3(x))
 
 # class Noise(nn.Module):
@@ -87,8 +91,8 @@ class Actor(nn.Module):
 
 class Critic(nn.Module):
     """Critic (Value) Model."""
-
-    def __init__(self, state_size, action_size, seed, fcs1_units=400, fc2_units=300):
+    
+    def __init__(self, state_size, action_size, seed, fcs1_units=256, fc2_units=256):
         """Initialize parameters and build model.
         Params
         ======
@@ -107,13 +111,16 @@ class Critic(nn.Module):
         self.fc23 = nn.Linear(fc2_units,fc2_units)
         #self.fc3 = nn.Linear(fc2_units, 1)
         self.bc1 = nn.BatchNorm1d(state_size, affine=False)
-        self.bc2 = nn.BatchNorm1d(fc2_units, affine=False)
+        self.bc2 = nn.BatchNorm1d(fcs1_units, affine=False)
         self.ln = nn.LayerNorm(33)
+        self.uo1 = nn.Linear(fcs1_units+action_size,3)
         self.reset_parameters()
 
     def reset_parameters(self):
         self.fcs1.weight.data.uniform_(*hidden_init(self.fcs1))
         self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
+        #self.fc23.weight.data.uniform_(*hidden_init(self.fc23))
+        self.uo1.weight.data.uniform_(*hidden_init(self.uo1))
         self.fc3.weight.data.uniform_(-3e-3, 3e-3)
 
     
@@ -140,10 +147,11 @@ class Critic(nn.Module):
         """Build a critic (value) network that maps (state, action) pairs -> Q-values."""        
         #new_state = np.digitize(state,np.linspace(state.min(), state.max(),20))*20+state.min() #self.discretize(state,5.0,-10.0,10.0)
         #xs = F.relu(self.fcs1(new_state.cuda().float()))
-        xs = F.leaky_relu(self.fcs1(self.bc1(state)))
-        #xs = self.bc1(xs)
+        xs = self.bc1(state)
+        xs = F.leaky_relu(self.fcs1(xs))
+        xs = self.bc2(xs)
         x = torch.cat((xs, action), dim=1)
-        x = F.leaky_relu(self.fc2(x))
+        x = F.leaky_relu(self.fc2((x)))
         #x = F.leaky_relu(self.fc23(x))
         #x = self.bc2(x)
         return self.fc3(x)
