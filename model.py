@@ -40,6 +40,7 @@ class Actor(nn.Module):
     def reset_parameters(self):
         self.fc1.weight.data.uniform_(*hidden_init(self.fc1))
         self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
+        self.fc23.weight.data.uniform_(*hidden_init(self.fc23))
         self.fc3.weight.data.uniform_(-3e-3, 3e-3)
 
     def forward(self, state):
@@ -50,9 +51,9 @@ class Actor(nn.Module):
         #print(x.size())
         x = self.bc2(x)
         x = F.leaky_relu(self.fc2(x))
-        #x= self.bc3(x)
+        x= self.bc3(x)
         #x = F.leaky_relu(self.fc23(x))
-        x = self.bc3(x)
+        #x = self.bc3(x)
         return F.tanh(self.fc3(x))
 
 # class Noise(nn.Module):
@@ -114,12 +115,13 @@ class Critic(nn.Module):
         self.bc2 = nn.BatchNorm1d(fcs1_units, affine=False)
         self.ln = nn.LayerNorm(33)
         self.uo1 = nn.Linear(fcs1_units+action_size,3)
+        #self.dp = nn.Dropout(.8)
         self.reset_parameters()
 
     def reset_parameters(self):
         self.fcs1.weight.data.uniform_(*hidden_init(self.fcs1))
         self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
-        #self.fc23.weight.data.uniform_(*hidden_init(self.fc23))
+        self.fc23.weight.data.uniform_(*hidden_init(self.fc23))
         self.uo1.weight.data.uniform_(*hidden_init(self.uo1))
         self.fc3.weight.data.uniform_(-3e-3, 3e-3)
 
@@ -152,6 +154,7 @@ class Critic(nn.Module):
         xs = self.bc2(xs)
         x = torch.cat((xs, action), dim=1)
         x = F.leaky_relu(self.fc2((x)))
+        #x = self.dp(x)
         #x = F.leaky_relu(self.fc23(x))
         #x = self.bc2(x)
         return self.fc3(x)

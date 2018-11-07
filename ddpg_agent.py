@@ -63,14 +63,15 @@ class Agent():
         # Save experience / reward
         
         for state, action, reward, next_state, done in zip(states,actions,rewards,next_states,dones):
-            self.memory.add(state, action, reward, next_state, done)
+            if random.uniform(0,10) > 5:
+                self.memory.add(state, action, reward, next_state, done)
 
         
         # Learn, if enough samples are available in memory
         if len(self.memory) > WARMUP_TIME:#BATCH_SIZE:
             Agent.play_time = Agent.play_time*play_time_decay
-            if Agent.play_time < 5:
-                Agent.play_time = PLAY_TIME
+            if Agent.play_time < 15:
+                Agent.play_time = 15
 
             if time_step % int(Agent.play_time) == 0:
                 for i in range(WORK_TIME):
@@ -117,7 +118,7 @@ class Agent():
         # Minimize the loss
         self.critic_optimizer.zero_grad()        
         critic_loss.backward()
-        #torch.nn.utils.clip_grad_norm_(self.critic_local.parameters(), 1)
+        torch.nn.utils.clip_grad_norm_(self.critic_local.parameters(), 1)
         self.critic_optimizer.step()
 
         # ---------------------------- update actor ---------------------------- #
@@ -127,6 +128,7 @@ class Agent():
         # Minimize the loss
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.actor_local.parameters(), 1)
         self.actor_optimizer.step()
 
         # ----------------------- update target networks ----------------------- #
