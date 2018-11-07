@@ -18,23 +18,18 @@ Continuous_Control.ipynb
 ```
 
 *ddpg_agent.py* code implements an environment-aware agent, while in *model.py* is a neural network models of Actor and Critic.
-*Navigation.ipynb* sadrzi kod koji trenira agenta za resavanje problema i prikazuje rezultate.
+*Continuous_Control.ipynb* sadrzi kod koji trenira agenta za resavanje problema i prikazuje rezultate.
 
-#### Version 1 - DQN with target network and Experience Replay
+#### DDPG with Actor-Critic target network and Experience Replay
 The model of the neural network used is shown in the picture:
 
 ![Network model](./Images/dqn+ft+rb.png  "Network model")
 
-The input parameter is the state of the environment (size 37), and the output is probability distribution of actions (size 4).
+The input parameter is the state of the environment (size 33), and the output is probability distribution of actions (size 4).
 
 The size of the hidden layers are:
-FC1 size = 64
-FC2 size = 64
-
-When Dueling DQN improvement were used, the network output was changed as in the picture:
-
-![Dueling network model](./Images/duelin_dqn.png  "Dueling network model")
-Pink branch is used only in version 2 of network, which will be described later.
+FC1 size = 256
+FC2 size = 256
 
 The hyper parameters are: 
 
@@ -66,56 +61,12 @@ Results after 1000 episodes are:
 	Episode 900	Average Score: 16.27
 	Episode 1000	Average Score: 16.32
 
-
 ![Plot of rewards](./Images/dqn+ft+rb-results.png  "Plot of rewards")
 Agent solves the problem after 368 episodes.
-
-
-####Version 2 - DQN with Fixed Target, Experience Replay and Epsilon learning
-
-Next I tried to use the neural network to learn epsilon value depending on the state of environment. The neural network model is shown in the following figure:
-
-![Network model](./Images/dqn+ft+rb+eps.png  "Network model")
-
-The input parameter is the state of the environment (size 37), and the output is probability distribution of actions and epsilon value (size 4 + 1).
-The sizes of the hidden layers are:
-FC1 = 137
-FC2 = 64
-
-Hyper parameters are:
-
-	BUFFER_SIZE = int(1e5)  # replay buffer size
-	GAMMA = 0.99            # discount factor
-	BATCH_SIZE = 64         # minibatch size
-	TAU = 1e-3              # for soft update of target parameters
-	LR = 5e-4               # learning rate 
-	UPDATE_EVERY = 4        # how often to update the target network
 
 Version 2 DQN with epsilon learning "likes" smaller batches and larger learninig rates then version 1 DQN. 
 In the case of using the Dueling DQN improvement, the output of the network is replaced by the model in the image:
 ![Dueling network model](./Images/duelin_dqn.png  "Dueling network model")
-
-In version 2, a pink branch is also used. Network configuration with the Dueling DQN and epsilon learning did not yield good results, so I did not use it in final configuration of version 2 network.
-
-Results after 1000 episodes are much better than in version 1:
-
-	Episode 100	Average Score: 3.37
-	Episode 200	Average Score: 11.20
-	Episode 229	Average Score: 13.04
-	Environment solved in 129 episodes!	Average Score: 13.04
-	Episode 300	Average Score: 14.90
-	Episode 400	Average Score: 13.99
-	Episode 500	Average Score: 15.81
-	Episode 600	Average Score: 16.32
-	Episode 700	Average Score: 17.05
-	Episode 800	Average Score: 15.53
-	Episode 900	Average Score: 15.93
-	Episode 1000	Average Score: 16.68
-
-
-![Plot of rewards](./Images/dqn+ft+rb+eps-results.png "Plot of rewards")
-
-Agent solves the problem for 129 episodes.
 
 ## Conclusion
 
