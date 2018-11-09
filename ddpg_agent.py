@@ -10,8 +10,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 BUFFER_SIZE = int(1e5)  # replay buffer size
-BATCH_SIZE = 128        # minibatch size
-GAMMA = 0.99            # discount factor
+BATCH_SIZE  = 128        # minibatch size
+GAMMA = 0.95            # discount factor
 TAU = 1e-3              # for soft update of target parameters
 LR_ACTOR = 1e-3         # learning rate of the actor 
 LR_CRITIC = 1e-3        # learning rate of the critic
@@ -70,8 +70,8 @@ class Agent():
         # Learn, if enough samples are available in memory
         if len(self.memory) > WARMUP_TIME:#BATCH_SIZE:
             Agent.play_time = Agent.play_time*play_time_decay
-            if Agent.play_time < 15:
-                Agent.play_time = 15
+            if Agent.play_time < 20:
+                Agent.play_time = 20
 
             if time_step % int(Agent.play_time) == 0:
                 for i in range(WORK_TIME):

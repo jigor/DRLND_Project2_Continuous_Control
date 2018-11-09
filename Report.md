@@ -2,14 +2,14 @@
 
 ## Learning Algorithm
 
-To solve Continuous Control project, I used as a start point the code from a ~~DDPG lesson~~ that implements Deep Deterministic Policy Gradients (DDPG) algorithm.
-[https://github.com/udacity/deep-reinforcement-learning/tree/master/dqn](https://github.com/udacity/deep-reinforcement-learning/tree/master/dqn) 
+To solve Continuous Control project, I used as a start point the code from the Udaciy deep reinforcement learning repository that implements Deep Deterministic Policy Gradients (DDPG) algorithm.
+[https://github.com/udacity/deep-reinforcement-learning/tree/master/ddpg-pendulum](https://github.com/udacity/deep-reinforcement-learning/tree/master/ddpg-pendulum) 
 
 In *Fixed Target* algorithm improvement we are using a separate network with a fixed parameter w_ for estimating the TD target and at *UPDATE_EVERY* step, we copy the parameters from our DQN network to update the target network.
 
 In *Experience Replay* we are storing agent’s experiences, and then randomly drawing batches of them to train the network. By keeping the experiences we draw random, we prevent the network from only learning from immediate experiences, and allow it to learn from a more varied array of past experiences. The Experience Replay buffer stores a fixed number of recent memories, and as new ones come in, old ones are removed.
 
-Original code is in first step customized to use * Unity ML-Agents * environment. The main part of the program is in following files
+Original code is in first step customized to use * Unity ML-Agents * environment. In this project I am using Reacher environment with 20 agens. The main part of the program is in following files
 
 ```Python
 ddpg_agent.py
@@ -24,21 +24,41 @@ Continuous_Control.ipynb
 The model of the neural network used is shown in the picture:
 
 ![Network model](./Images/dqn+ft+rb.png  "Network model")
-
-The input parameter is the state of the environment (size 33), and the output is probability distribution of actions (size 4).
+Za Actor koristio sam mrezu sa dva lejera
 
 The size of the hidden layers are:
 FC1 size = 256
 FC2 size = 256
+The input parameter is the state of the environment (size 33), and the output is  action (size 4).
+Za Critic sam takodje koristi mresu sa dva lejera dimenzija
+FCS1 size = 256
+FC2 size + action_size= 256 + 4
+Input parmeters are state in first layer and action in second layer, and output is Q  value.
+I used batch normalization on the state input and all layers of the Actor network and all layers of the Critic network prior to the action input as in paper https://arxiv.org/pdf/1509.02971.pdf
+Aktivaciona funkcija je leakyReLU u svim lejerima osim u poslednjem lejeru Actor gde sm koristio tanh jer su vednosti akcije u rasponu [-1,1], i poslednjem lejeru Critic nisam koristio aktivacionu funkciju jer izlaz pretstavla Q value.
 
 The hyper parameters are: 
 
-	BUFFER_SIZE = int(1e5)  # replay buffer size
-	BATCH_SIZE = 128        # minibatch size
-	GAMMA = 0.99            # discount factor
-	TAU = 1e-3              # for soft update of target parameters
-	LR = 5e-5               # learning rate 
-	UPDATE_EVERY = 4        # how often to update the target network
+BUFFER_SIZE = int(1e5)  # replay buffer size
+BATCH_SIZE = 128        # minibatch size
+GAMMA = 0.99            # discount factor
+TAU = 1e-3              # for soft update of target parameters
+LR_ACTOR = 1e-3         # learning rate of the actor 
+LR_CRITIC = 1e-3        # learning rate of the critic
+WEIGHT_DECAY = 0        # L2 weight decay
+WARMUP_TIME = 10000
+PLAY_TIME = 45
+WORK_TIME = 10
+play_time_decay = 0.999
+
+Hyperparameters koje sam uveo su WARMUP_TIME koji predstavlja vreme popunjavanja Buffera pre nego sto agent krene da uci. PLAY_TIME pretsavlja koliko dugo ce agent prikupljati uzorke pre nego sto krene da uci, WORK_TIME pretstavlja broj ciklusa ucenja kada agent krene da uci,. play_time_decay predstavlja faktor koim opada PlaY_Time slicno kao GAMMA.
+
+Kod u ddpg_agent.py je promenjen da podrzava input 20 agenata. Ideja je bila prilikom ovih promena da se zadrzi model sa jednim actor i jednim critic a da se buffer puniiskustvom 20 agenata. Iskustva se u buffer dodaju na uniormly slucajan tako da je verovatnoca da ce iskustvo svakog od agena bit i dodato u buffer je 50%, na taj nacin cinimo buffer more random i razijamo korelacije jos vise( nesto slicno kao dropout layer).
+Druga znacajna promena je da se uvodi vreme uzimanja uzoraka PLAY_TIME u kontinuitetu i vreme ucenja WORK_TIME  u kontinuitetu, cime se utice na odnos exploration/expliatation
+Treca promena je uvodjenje
+torch.nn.utils.clip_grad_norm_(self.critic_local.parameters(), 1)
+u Critic.
+Parametri OUNoise su blago povecani u odnosu na bazni kod i iznose theta = .25 i sigma = .3
 
 
 By changing the hyper parameter GAMMA, I did not get a significant improvement in the results, decreasing gives worse results, and the increase does not make a significant improvement.
