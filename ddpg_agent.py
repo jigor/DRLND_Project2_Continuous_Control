@@ -10,16 +10,17 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 BUFFER_SIZE = int(1e5)  # replay buffer size
-BATCH_SIZE  = 128        # minibatch size
+BATCH_SIZE  = 128       # minibatch size
 GAMMA = 0.95            # discount factor
 TAU = 1e-3              # for soft update of target parameters
 LR_ACTOR = 1e-3         # learning rate of the actor 
 LR_CRITIC = 1e-3        # learning rate of the critic
 WEIGHT_DECAY = 0        # L2 weight decay
-WARMUP_TIME = 10000
-PLAY_TIME = 45
-WORK_TIME = 10
-play_time_decay = 0.999
+WARMUP_TIME = 10000     # time for collecting initial experiences
+PLAY_TIME = 40#45          # timesteps for collecting experiences from agents
+WORK_TIME = 10          # timesteps for learning
+PLAY_TIME_DECAY = 0.999 # play time discount factor
+PLAY_TIME_MIN = 15      # play time minimum value
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -63,18 +64,18 @@ class Agent():
         # Save experience / reward
         
         for state, action, reward, next_state, done in zip(states,actions,rewards,next_states,dones):
-            if random.uniform(0,10) > 5:
+            if random.uniform(0,10) > 5:    #add expirience from random agents
                 self.memory.add(state, action, reward, next_state, done)
 
         
         # Learn, if enough samples are available in memory
         if len(self.memory) > WARMUP_TIME:#BATCH_SIZE:
-            Agent.play_time = Agent.play_time*play_time_decay
-            if Agent.play_time < 20:
-                Agent.play_time = 20
+            Agent.play_time = Agent.play_time*PLAY_TIME_DECAY
+            if Agent.play_time < PLAY_TIME_MIN:
+                Agent.play_time = PLAY_TIME_MIN
 
             if time_step % int(Agent.play_time) == 0:
-                for i in range(WORK_TIME):
+                for _ in range(WORK_TIME):
                     experiences = self.memory.sample()
                     self.learn(experiences, GAMMA)
 
@@ -105,7 +106,7 @@ class Agent():
             gamma (float): discount factor
         """
         states, actions, rewards, next_states, dones = experiences
-        #print(states.size())
+        
         # ---------------------------- update critic ---------------------------- #
         # Get predicted next-state actions and Q values from target models
         actions_next = self.actor_target(next_states)
@@ -118,7 +119,7 @@ class Agent():
         # Minimize the loss
         self.critic_optimizer.zero_grad()        
         critic_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.critic_local.parameters(), 1)
+        torch.nn.utils.clip_grad_norm_(self.critic_local.parameters(), 1)   # clip gradients
         self.critic_optimizer.step()
 
         # ---------------------------- update actor ---------------------------- #
@@ -128,7 +129,7 @@ class Agent():
         # Minimize the loss
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.actor_local.parameters(), 1)
+        torch.nn.utils.clip_grad_norm_(self.actor_local.parameters(), 1)    # clip gradients
         self.actor_optimizer.step()
 
         # ----------------------- update target networks ----------------------- #
